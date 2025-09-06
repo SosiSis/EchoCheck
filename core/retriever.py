@@ -1,8 +1,18 @@
 """Document retrieval system for RAG-Guardian."""
 
 import logging
+import os
+import sys
 from typing import List, Dict, Any, Optional
-from langchain_community.vectorstores import Chroma
+
+# Fix SQLite issue for Streamlit Cloud
+try:
+    import pysqlite3
+    sys.modules['sqlite3'] = pysqlite3
+except ImportError:
+    pass
+
+from langchain_chroma import Chroma
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from core.embeddings import EmbeddingManager

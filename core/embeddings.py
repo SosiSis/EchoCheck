@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from utils.config import config
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,8 @@ class EmbeddingManager:
                 openai_api_key=config.OPENAI_API_KEY
             )
         else:
-            logger.info("Using local SentenceTransformer embeddings")
-            return SentenceTransformerEmbeddings(
+            logger.info("Using local HuggingFace embeddings")
+            return HuggingFaceEmbeddings(
                 model_name="all-MiniLM-L6-v2"
             )
     
