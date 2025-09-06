@@ -1,5 +1,7 @@
 # EchoCheck 🛡️
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://echocheck-w7wuxpftjefzfxhcsrautd.streamlit.app/)
+
 **Your LLM's Harsh (but Fair) Code Reviewer. Preventing AI Hallucinations in Real-Time.**
 
 ## 🎯 The Problem
@@ -102,4 +104,4 @@ Try these queries to see the reflection in action:
 
 ---
 
-**Built for [Hackathon Name] 2025** 🏆
+**Built for NSK Hackathon  2025** 🏆
