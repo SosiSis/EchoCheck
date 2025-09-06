@@ -65,9 +65,6 @@ class DocumentRetriever:
             # Add to vector store
             ids = self.vectorstore.add_documents(chunks)
             
-            # Persist the changes
-            self.vectorstore.persist()
-            
             logger.info(f"Added {len(chunks)} document chunks to vector store")
             return ids
             

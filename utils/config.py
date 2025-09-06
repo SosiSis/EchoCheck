@@ -7,66 +7,65 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Handle Streamlit secrets
-try:
-    import streamlit as st
-    def get_secret(key: str, default: str = "") -> str:
-        """Get secret from Streamlit secrets or environment."""
-        try:
-            value = st.secrets.get(key, os.getenv(key, default))
-            return str(value) if value is not None else default
-        except:
-            return os.getenv(key, default)
-except ImportError:
-    def get_secret(key: str, default: str = "") -> str:
-        """Get secret from environment."""
-        return os.getenv(key, default)
+def safe_bool_conversion(value, default="False"):
+    """Safely convert value to boolean."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ("true", "1", "yes", "on")
+    return str(default).lower() in ("true", "1", "yes", "on")
 
-def get_bool_secret(key: str, default: str = "False") -> bool:
-    """Get boolean secret from Streamlit secrets or environment."""
+def safe_int_conversion(value, default="0"):
+    """Safely convert value to integer."""
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return int(default)
+
+def get_config_value(key: str, default: str = "", convert_type=None):
+    """Get configuration value from Streamlit secrets or environment."""
     try:
         import streamlit as st
         try:
-            value = st.secrets.get(key, os.getenv(key, default))
-            if isinstance(value, bool):
-                return value
-            return str(value).lower() == "true"
+            value = st.secrets.get(key)
+            if value is not None:
+                if convert_type == bool:
+                    return safe_bool_conversion(value, default)
+                elif convert_type == int:
+                    return safe_int_conversion(value, default)
+                return str(value)
         except:
-            return os.getenv(key, default).lower() == "true"
+            pass
     except ImportError:
-        return os.getenv(key, default).lower() == "true"
-
-def get_int_secret(key: str, default: str = "0") -> int:
-    """Get integer secret from Streamlit secrets or environment."""
-    try:
-        import streamlit as st
-        try:
-            value = st.secrets.get(key, os.getenv(key, default))
-            return int(value)
-        except:
-            return int(os.getenv(key, default))
-    except ImportError:
-        return int(os.getenv(key, default))
+        pass
+    
+    # Fallback to environment variables
+    env_value = os.getenv(key, default)
+    if convert_type == bool:
+        return safe_bool_conversion(env_value, default)
+    elif convert_type == int:
+        return safe_int_conversion(env_value, default)
+    return env_value
 
 class Config:
     """Application configuration."""
     
     # API Keys
-    GROQ_API_KEY: str = get_secret("GROQ_API_KEY", "")
-    OPENAI_API_KEY: str = get_secret("OPENAI_API_KEY", "")
-    ANTHROPIC_API_KEY: str = get_secret("ANTHROPIC_API_KEY", "")
+    GROQ_API_KEY: str = get_config_value("GROQ_API_KEY", "")
+    OPENAI_API_KEY: str = get_config_value("OPENAI_API_KEY", "")
+    ANTHROPIC_API_KEY: str = get_config_value("ANTHROPIC_API_KEY", "")
     
     # Vector Database
-    CHROMA_PERSIST_DIRECTORY: str = get_secret("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
+    CHROMA_PERSIST_DIRECTORY: str = get_config_value("CHROMA_PERSIST_DIRECTORY", "./data/chroma_db")
     
     # Application Settings
-    DEBUG: bool = get_bool_secret("DEBUG", "False")
-    LOG_LEVEL: str = get_secret("LOG_LEVEL", "INFO")
+    DEBUG: bool = get_config_value("DEBUG", "False", bool)
+    LOG_LEVEL: str = get_config_value("LOG_LEVEL", "INFO")
     
     # Model Settings
-    DEFAULT_MODEL: str = get_secret("DEFAULT_MODEL", "llama-3.1-8b-instant")  # Updated Groq model
-    EMBEDDING_MODEL: str = "text-embedding-3-small"  # Keep OpenAI for embeddings
-    USE_GROQ: bool = get_bool_secret("USE_GROQ", "True")
+    DEFAULT_MODEL: str = get_config_value("DEFAULT_MODEL", "llama-3.1-8b-instant")
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    USE_GROQ: bool = get_config_value("USE_GROQ", "True", bool)
     TEMPERATURE: float = 0.1
     MAX_TOKENS: int = 2000
     
@@ -80,14 +79,14 @@ class Config:
     CONFIDENCE_THRESHOLD: float = 0.7
     
     # Document Loading Settings
-    ENABLE_REACT_DOCS: bool = get_bool_secret("ENABLE_REACT_DOCS", "True")
-    ENABLE_NEXTJS_DOCS: bool = get_bool_secret("ENABLE_NEXTJS_DOCS", "True")
-    ENABLE_LOCAL_DOCS: bool = get_bool_secret("ENABLE_LOCAL_DOCS", "True")
-    ENABLE_SAMPLE_DOCS: bool = get_bool_secret("ENABLE_SAMPLE_DOCS", "True")
-    USE_DOCUMENT_CACHE: bool = get_bool_secret("USE_DOCUMENT_CACHE", "True")
-    CACHE_EXPIRY_HOURS: int = get_int_secret("CACHE_EXPIRY_HOURS", "24")
-    DOCUMENT_SOURCE_MODE: str = get_secret("DOCUMENT_SOURCE_MODE", "auto")  # auto, local, remote, sample
-    CACHE_DIR: str = get_secret("CACHE_DIR", "./data/cache")
+    ENABLE_REACT_DOCS: bool = get_config_value("ENABLE_REACT_DOCS", "True", bool)
+    ENABLE_NEXTJS_DOCS: bool = get_config_value("ENABLE_NEXTJS_DOCS", "True", bool)
+    ENABLE_LOCAL_DOCS: bool = get_config_value("ENABLE_LOCAL_DOCS", "True", bool)
+    ENABLE_SAMPLE_DOCS: bool = get_config_value("ENABLE_SAMPLE_DOCS", "True", bool)
+    USE_DOCUMENT_CACHE: bool = get_config_value("USE_DOCUMENT_CACHE", "True", bool)
+    CACHE_EXPIRY_HOURS: int = get_config_value("CACHE_EXPIRY_HOURS", "24", int)
+    DOCUMENT_SOURCE_MODE: str = get_config_value("DOCUMENT_SOURCE_MODE", "auto")
+    CACHE_DIR: str = get_config_value("CACHE_DIR", "./data/cache")
     
     @classmethod
     def validate(cls) -> bool:
