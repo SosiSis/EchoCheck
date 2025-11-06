@@ -1,16 +1,44 @@
 """EchoCheck: Streamlit Dashboard for Reflective RAG System."""
 
 # Resource limit guards (Unix-only) - prevent "Too many open files" errors
+import os
+import sys
+
+# Aggressive file descriptor conservation for constrained environments
+os.environ['STREAMLIT_SERVER_RUN_ON_SAVE'] = 'false'
+os.environ['STREAMLIT_SERVER_FILE_WATCHER_TYPE'] = 'none'
+os.environ['STREAMLIT_BROWSER_GATHER_USAGE_STATS'] = 'false'
+sys.dont_write_bytecode = True  # Reduce .pyc file creation
+
 try:
     import resource
     soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    
+    # Be more aggressive in container environments
     target = min(65536, hard) if hard != resource.RLIM_INFINITY else 65536
+    if hard < 65536:  # Constrained environment (likely container)
+        target = min(8192, hard)  # Use smaller but safer increase
+    
     if soft < target:
         resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
-        print(f'EchoCheck: Increased RLIMIT_NOFILE from {soft} to {target}')
+        print(f'EchoCheck: Increased RLIMIT_NOFILE from {soft} to {target} (hard limit: {hard})')
+    else:
+        print(f'EchoCheck: RLIMIT_NOFILE already at {soft} (hard limit: {hard})')
+        
+    # Log current usage for monitoring
+    try:
+        import subprocess
+        result = subprocess.run(['lsof', '-p', str(os.getpid())], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            current_fds = len(result.stdout.strip().split('\n')) - 1
+            print(f'EchoCheck: Currently using {current_fds} file descriptors')
+    except:
+        pass  # lsof not available or failed
+        
 except Exception as e:
     # Expected on Windows or environments where process can't modify limits
-    pass
+    print(f'EchoCheck: Could not modify RLIMIT_NOFILE: {e}')
 
 import streamlit as st
 import logging
@@ -144,6 +172,14 @@ st.markdown("""
 def initialize_system():
     """Initialize the RAG system components."""
     try:
+        # Log resource info for debugging
+        try:
+            import resource
+            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+            logger.info(f"File descriptor limits: soft={soft}, hard={hard}")
+        except:
+            logger.info("Resource limits not available")
+        
         # Validate configuration
         config.validate()
         
