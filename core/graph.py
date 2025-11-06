@@ -42,9 +42,13 @@ class RAGState(TypedDict):
 class ReflectiveRAGWorkflow:
     """Implements the Reflective RAG workflow using LangGraph."""
     
-    def __init__(self):
-        """Initialize the workflow components."""
-        self.retriever = DocumentRetriever()
+    def __init__(self, retriever: Optional[DocumentRetriever] = None):
+        """Initialize the workflow components.
+        
+        Args:
+            retriever: Optional DocumentRetriever instance to share. If None, creates new one.
+        """
+        self.retriever = retriever or DocumentRetriever()
         self.generator = ResponseGenerator()
         self.critic = ResponseCritic()
         

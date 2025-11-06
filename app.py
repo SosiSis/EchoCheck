@@ -1,5 +1,17 @@
 """EchoCheck: Streamlit Dashboard for Reflective RAG System."""
 
+# Resource limit guards (Unix-only) - prevent "Too many open files" errors
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target = min(65536, hard) if hard != resource.RLIM_INFINITY else 65536
+    if soft < target:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+        print(f'EchoCheck: Increased RLIMIT_NOFILE from {soft} to {target}')
+except Exception as e:
+    # Expected on Windows or environments where process can't modify limits
+    pass
+
 import streamlit as st
 import logging
 import time
@@ -135,9 +147,9 @@ def initialize_system():
         # Validate configuration
         config.validate()
         
-        # Initialize components
-        workflow = ReflectiveRAGWorkflow()
+        # Initialize components (share retriever to avoid duplicates)
         retriever = DocumentRetriever()
+        workflow = ReflectiveRAGWorkflow(retriever=retriever)
         loader = DocumentLoader()
         
         # Load sample documents if collection is empty
