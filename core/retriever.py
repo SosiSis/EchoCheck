@@ -13,7 +13,26 @@ except ImportError:
     pass
 
 from langchain_chroma import Chroma
-from langchain.schema import Document
+
+# langchain moved/renamed some modules across versions. Try the
+# modern import first, fall back to older path, and finally a
+# minimal local fallback so the package import won't fail at app
+# startup. The fallback Document is intentionally minimal and
+# only provides the attributes this module expects (page_content,
+# metadata).
+try:
+    from langchain.schema import Document
+except Exception:
+    try:
+        from langchain.docstore.document import Document
+    except Exception:
+        from dataclasses import dataclass
+
+        @dataclass
+        class Document:
+            page_content: str
+            metadata: dict
+
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from core.embeddings import EmbeddingManager
 from utils.config import config
