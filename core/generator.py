@@ -2,9 +2,40 @@
 
 import logging
 from typing import List, Dict, Any, Optional
-from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
-from langchain.schema import Document, HumanMessage, SystemMessage
+
+# Guard LangChain imports
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    ChatOpenAI = None
+
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
+
+try:
+    from langchain.schema import Document, HumanMessage, SystemMessage
+except ImportError:
+    try:
+        from langchain.docstore.document import Document
+        from langchain.schema import HumanMessage, SystemMessage
+    except ImportError:
+        # Minimal fallbacks
+        from dataclasses import dataclass
+        @dataclass
+        class Document:
+            page_content: str
+            metadata: dict
+        
+        @dataclass
+        class HumanMessage:
+            content: str
+        
+        @dataclass
+        class SystemMessage:
+            content: str
+
 from utils.config import config
 from utils.helpers import clean_code_snippet
 

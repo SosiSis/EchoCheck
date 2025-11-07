@@ -2,9 +2,31 @@
 
 import logging
 from typing import Dict, Any, List
-from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage, SystemMessage
+
+# Guard LangChain imports
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:
+    ChatOpenAI = None
+
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
+
+try:
+    from langchain.schema import HumanMessage, SystemMessage
+except ImportError:
+    # Minimal fallbacks
+    from dataclasses import dataclass
+    @dataclass
+    class HumanMessage:
+        content: str
+    
+    @dataclass
+    class SystemMessage:
+        content: str
+
 from utils.config import config
 from utils.helpers import parse_critique_response
 

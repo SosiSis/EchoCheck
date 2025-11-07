@@ -33,7 +33,34 @@ except Exception:
             page_content: str
             metadata: dict
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+# Guard text splitter imports across LangChain versions
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+except ImportError:
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+    except ImportError:
+        # Minimal fallback text splitter
+        class RecursiveCharacterTextSplitter:
+            def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200, separators: List[str] = None):
+                self.chunk_size = chunk_size
+                self.chunk_overlap = chunk_overlap
+                self.separators = separators or ["\n\n", "\n", " ", ""]
+            
+            def split_documents(self, documents: List[Document]) -> List[Document]:
+                """Simple fallback document splitter."""
+                chunks = []
+                for doc in documents:
+                    text = doc.page_content
+                    for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
+                        chunk_text = text[i:i + self.chunk_size]
+                        if chunk_text.strip():
+                            chunks.append(Document(
+                                page_content=chunk_text,
+                                metadata={**doc.metadata, "chunk_index": len(chunks)}
+                            ))
+                return chunks
+
 from core.embeddings import EmbeddingManager
 from utils.config import config
 

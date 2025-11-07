@@ -15,17 +15,75 @@ import tempfile
 
 import markdown
 from bs4 import BeautifulSoup
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
-from langchain_community.document_loaders import (
-    TextLoader, 
-    DirectoryLoader,
-    WebBaseLoader
-)
+
+# Guard LangChain imports for version compatibility
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+except ImportError:
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+    except ImportError:
+        # Minimal fallback (same as in retriever.py)
+        class RecursiveCharacterTextSplitter:
+            def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200, separators: List[str] = None):
+                self.chunk_size = chunk_size
+                self.chunk_overlap = chunk_overlap
+                self.separators = separators or ["\n\n", "\n", " ", ""]
+            
+            def split_documents(self, documents) -> List:
+                chunks = []
+                for doc in documents:
+                    text = doc.page_content
+                    for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
+                        chunk_text = text[i:i + self.chunk_size]
+                        if chunk_text.strip():
+                            from dataclasses import dataclass
+                            @dataclass
+                            class Document:
+                                page_content: str
+                                metadata: dict
+                            chunks.append(Document(
+                                page_content=chunk_text,
+                                metadata={**doc.metadata, "chunk_index": len(chunks)}
+                            ))
+                return chunks
+
+try:
+    from langchain.schema import Document
+except ImportError:
+    try:
+        from langchain.docstore.document import Document
+    except ImportError:
+        from dataclasses import dataclass
+        @dataclass
+        class Document:
+            page_content: str
+            metadata: dict
+
+try:
+    from langchain_community.document_loaders import (
+        TextLoader, 
+        DirectoryLoader,
+        WebBaseLoader
+    )
+except ImportError:
+    # Minimal fallback loaders
+    class TextLoader:
+        def __init__(self, file_path: str): self.file_path = file_path
+        def load(self): 
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                return [Document(page_content=f.read(), metadata={"source": self.file_path})]
+    
+    class DirectoryLoader:
+        def __init__(self, path: str, glob: str = "**/*"): self.path = path
+        def load(self): return []
+    
+    class WebBaseLoader:
+        def __init__(self, urls): self.urls = urls
+        def load(self): return []
 
 # Import configuration
 from utils.config import Config
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from bs4 import BeautifulSoup
 import markdown
 
